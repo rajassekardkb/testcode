@@ -4,10 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
@@ -26,7 +26,6 @@ import com.example.demo.models.ProfileResponse
 import com.example.demo.util.ApiState
 import com.example.demo.util.Utilities.showToast
 import com.example.demo.viewmodel.AlertsListViewModel
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
@@ -85,50 +84,6 @@ class ExpenseListActivity : AppCompatActivity(), CartAdapter.OnItemClickListener
     }
 
 
-
-
-    /*
-        private fun callApi() {
-            val mHashMap = HashMap<String, Any>()
-            mHashMap["request_param"] = "Value"
-            mHashMap["page"] = "1"
-            viewModel.getExpenseListItem(mHashMap)
-
-            lifecycleScope.launchWhenStarted {
-                viewModel.postStateFlow.collect {
-                    when (it) {
-                        is ApiState.Loading -> {
-                        }
-                        is ApiState.Failure -> {
-                            showToast(context, it.msg.toString())
-                        }
-                        is ApiState.Success<*> -> {
-                            binding.rvExpenseList.isVisible = true
-                            val result = it.result as CardResponse
-                            //alertsList = result.data
-                            postAdapter.setData(result.data)
-                            postAdapter.notifyDataSetChanged()
-
-                            for (i in 0 until result.data.size) {
-                                //saving to db
-                                val regex = Regex("[^A-Za-z0-9]")
-
-                                val data = result.data[i]
-                                data.price = result.data[i].price.replace(",", "")
-                                val resultR = regex.replace(result.data[i].price, "")
-                                data.price = resultR
-                                alertViewModel.insert(data)
-                            }
-                        }
-                        is ApiState.Empty -> {
-
-                        }
-                    }
-                }
-            }
-
-        }
-    */
     private fun callApi() {
         val mHashMap = HashMap<String, Any>()
         mHashMap["request_param"] = "Value"
@@ -188,19 +143,7 @@ class ExpenseListActivity : AppCompatActivity(), CartAdapter.OnItemClickListener
 
                         postAdapter.setData(listData)
                         postAdapter.notifyDataSetChanged()
-
-                        /*
-                                               for (i in 0 until result.size) {
-                                                   //saving to db
-                                                   val regex = Regex("[^A-Za-z0-9]")
-
-                                                   val data = result.data[i]
-                                                   data.price = result.data[i].price.replace(",", "")
-                                                   val resultR = regex.replace(result.data[i].price, "")
-                                                   data.price = resultR
-                                                   alertViewModel.insert(data)
-                                               }
-                       */
+                        search()
                     }
                     is ApiState.Empty -> {
 
@@ -215,10 +158,13 @@ class ExpenseListActivity : AppCompatActivity(), CartAdapter.OnItemClickListener
         alertViewModel.getList.observe(this, Observer { response ->
             alertsList = (response as List<ProfileResponse>)
             if (alertsList.isNotEmpty()) {
-                //load from db
+                println("Deia Na DB da")
                 postAdapter.setData(response)
                 postAdapter.notifyDataSetChanged()
+                search()
             } else {
+                println("Deia Na serverda")
+
                 // get data from server
                 callApi()
             }
@@ -226,22 +172,20 @@ class ExpenseListActivity : AppCompatActivity(), CartAdapter.OnItemClickListener
     }
 
 
-    private fun showInfView() {
-        val view = BottomSheetDialog(this)
-        view.setContentView(R.layout.bottomsheet)
-        val copy = view.findViewById<ImageView>(R.id.ivInfowa)
-        val textBPrice = view.findViewById<TextView>(R.id.textBPrice)
-        val textPrice = view.findViewById<TextView>(R.id.textPrice)
-        /*  alertViewModel.getPrice.observe(this) { _ ->
+    private fun search() {
+        binding.searchView.setOnQueryTextListener(object :
+            SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(p0: String?): Boolean {
+                return true
+            }
 
+            override fun onQueryTextChange(query: String?): Boolean {
+                postAdapter.filter.filter(query)
 
-          }*/
+                return true
+            }
+        })
 
-
-        copy!!.setOnClickListener {
-            view.cancel()
-        }
-        view.show()
     }
 
     override fun onClick(view: View?) {
@@ -263,10 +207,10 @@ class ExpenseListActivity : AppCompatActivity(), CartAdapter.OnItemClickListener
 
     }
 
-    override fun onItemText(data: TextView,id:String) {
+    override fun onItemText(data: TextView, id: String) {
         viewModels.getCompany(id).observe(this) { response ->
             try {
-                data.text =response.name
+                data.text = response.name
 
             } catch (e: java.lang.Exception) {
                 e.printStackTrace()
